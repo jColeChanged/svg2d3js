@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="Compile SVG markup to D3.js code." />
+        <meta name="keywords" content="compile svg d3.js" />
+        <link rel="author" content="https://plus.google.com/108524683256979160005/" />
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" />
+        <title>SVG Markup To D3.js Compiler</title>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Compile SVG Snippets To D3.js</h1>
+            <p>
+                This only supports a subset of SVG. 
+                It doesn't try to parse everything or get a higher-level understanding of what exactly it is parsing.
+                It just creates an equivalent element and attribute structure.
+                Since it lacks any sophisticated understanding it may be the case that certain SVG properties are not translated correctly.
+            </p>
+            <form>
+                <div id="svgTextareaFormGroup" class="form-group">
+                    <label class="control-label" for="svgTextarea">SVG</label>
+                    <textarea class="form-control" id="svgTextarea" cols="80" rows="7" autofocus></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="control-label" for="d3jsTextarea">D3.js</label>
+                    <textarea class="form-control" id="d3jsTextarea" cols="80" rows="7" readonly></textarea>
+                </div>
+            </form>
+        </div>
+<script type="text/javascript">
+
+
+function generateUUID(){
+    return 'qvxxxxxxxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = (Math.random()*16)%16 | 0;
+        return (c === 'x' ? r : (r&0x3|0x8)).toString(16);
+    });
+}
+
+function domAttrsToJSON(element) {
+    var o = {};
+    for (var i=0; i < element.attributes.length; i++) {
+        var attrib = element.attributes[i];
+        o[attrib.name] = attrib.textContent;
+    }
+    return JSON.stringify(o);
+}
+function domToD3(element, selection) {
+    var varName = generateUUID(),
+        attrsJSON = domAttrsToJSON(element),
+        sel = "var " + varName + " = " + selection + ".append('" + element.nodeName + "').attrs(" + attrsJSON + ");",
+        elements = [];
+
+    elements.push(sel);
+    for (var i=0; i < element.children.length; i++) {
+        elements.push(domToD3(element.children[i], varName));
+    }
+    return elements.join("\n");
+}
+
+document.getElementById("svgTextarea").onchange = function(e) {
+    var d3JsTextArea = document.getElementById("d3jsTextarea"),
+        text = e.srcElement.value,
+        oParser = new DOMParser(),
+        oDOM = oParser.parseFromString(text, "text/xml"),
+        svgTextAreaFormGroup = document.getElementById("svgTextareaFormGroup");
+    
+    console.log(oDOM.documentElement.nodeName);
+    if (oDOM.documentElement.nodeName === "parseerror") {
+        svgTextAreaFormGroup.className = "form-group has-errors";
+    }
+    else {
+        svgTextAreaFormGroup.className = "form-group";
+        d3JsTextArea.value = domToD3(oDOM.documentElement, "selection");
+    }
+};
+</script>
+    </body>
+</html>
